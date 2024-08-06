@@ -1,14 +1,22 @@
 import math
-
-from phy_data.data_parser import create_dataframe as phy_creator
-from single_page.data_parser import create_dataframe as single_creator
-from multi_page.data_parser import create_dataframe as multi_creator
-from new_data.data_parser import create_dataframe as new_creator
+import os
 from sklearn.model_selection import train_test_split
 import pandas as pd
 from scipy import interpolate
 import numpy as np
 import matplotlib.pyplot as plt
+
+if os.getenv("COLAB_RELEASE_TAG"):
+    from calciumSignalsDNN.data.phy_data.data_parser import create_dataframe as phy_creator
+    from calciumSignalsDNN.data.single_page.data_parser import create_dataframe as single_creator
+    from calciumSignalsDNN.data.multi_page.data_parser import create_dataframe as multi_creator
+    from calciumSignalsDNN.data.new_data.data_parser import create_dataframe as new_creator
+else:
+    from data.phy_data.data_parser import create_dataframe as phy_creator
+    from data.single_page.data_parser import create_dataframe as single_creator
+    from data.multi_page.data_parser import create_dataframe as multi_creator
+    from data.new_data.data_parser import create_dataframe as new_creator
+
 
 
 def remove_duplicates(df):
@@ -23,11 +31,15 @@ def get_datasets_paw(df):
     train, test = train_test_split(result, test_size=0.2)
     train = train.reset_index(drop=True)
     test = test.reset_index(drop=True)
+
+    train = train[~train['filtered'].apply(lambda x: np.any(np.isnan(x)))]
+    test = test[~test['filtered'].apply(lambda x: np.any(np.isnan(x)))]
+
     return train, test
 
 
-def load_database() -> pd.DataFrame:
-    return pd.read_hdf('dataframe.h5', key='df')
+def load_database(path='dataframe.h5') -> pd.DataFrame:
+    return pd.read_hdf(path, key='df')
 
 
 def resample_array(arr, target_length=1800):
@@ -103,9 +115,9 @@ pd.set_option('display.width', None)  # Adjust display width
 pd.set_option('display.max_colwidth', None)  # Display entire content of columns
 
 # df = create_dataframe()
-df = load_database()
+# df = load_database()
 
 # train, test = get_datasets_paw(df)
-grid_plot(df[:200], legend=True, labels=['resampled', 'filtered'])
+# grid_plot(df[:200], legend=True, labels=['resampled', 'filtered'])
 # print(test)
 # print(train)
