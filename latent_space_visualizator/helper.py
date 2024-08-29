@@ -18,8 +18,8 @@ def load_autoencoder(dim: int) -> AE:
     # full_autoencoder = get_outer2()
     full_autoencoder.build(input_shape=(None, 1800))
     # full_autoencoder.load_weights(f"../weights/FullConvAE{str(dim)}Dbis.h5")
-    full_autoencoder.load_weights(f"../betavae.weights.h5")
-    # full_autoencoder.load_weights(f"../inner2.weights.h5")
+    full_autoencoder.load_weights(f"../weights/betavae.weights.h5")
+    # full_autoencoder.load_weights(f"../weights/inner2.weights.h5")
 
     return full_autoencoder
 

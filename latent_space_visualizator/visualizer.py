@@ -23,7 +23,7 @@ class Visualizer:
         self.df = db.load_database('../data/dataframe.h5')
 
         result = self.df[self.df['stimulus'] == "PAW"]
-        result = result[result['source'] == "DBD"]
+        # result = result[result['source'] == "DBD"]
 
         nan_clear = result[~result['filtered'].apply(lambda x: np.any(np.isnan(x)))]
 
