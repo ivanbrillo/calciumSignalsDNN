@@ -22,7 +22,7 @@ def train_and_evaluate(autoencoder: Model, train_data, test_data, epochs_n=200, 
 
     autoencoder.compile(optimizer='adam', loss="mse")
 
-    early_stopping = tf.keras.callbacks.EarlyStopping(patience=patience, restore_best_weights=False, monitor=monitor)
+    early_stopping = tf.keras.callbacks.EarlyStopping(patience=patience, restore_best_weights=False, monitor=monitor, mode="min")
     checkpoint_callback = ModelCheckpoint(filepath='best_model.weights.h5', save_best_only=True, monitor=monitor,
                                           mode='min', save_weights_only=True)
 
@@ -48,16 +48,16 @@ def train_and_evaluate(autoencoder: Model, train_data, test_data, epochs_n=200, 
     )
 
     autoencoder.load_weights('best_model.weights.h5')
-    autoencoder.save_weights("weights.h5")
+    autoencoder.save_weights("prova.weights.h5")
 
     decoded_values_test = autoencoder.predict(test_np)
     decoded_values_train = autoencoder.predict(train_np)
 
     print(" ----- TEST SET ----- ")
-    plot_predictions(test_np[:15], decoded_values_test[:15])
+    plot_predictions(test_np, decoded_values_test)
 
     print("\n\n\n ----- TRAIN SET ----- ")
-    plot_predictions(train_np[:15], decoded_values_train[:15])
-    #
+    plot_predictions(train_np, decoded_values_train)
+
     # print("\n\n\nTEST SET MSE:", mse(np.squeeze(test_np), np.squeeze(decoded_values_test)))
     # print("TRAINING SET MSE:", mse(np.squeeze(train_np), np.squeeze(decoded_values_train)))

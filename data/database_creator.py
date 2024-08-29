@@ -116,8 +116,15 @@ pd.set_option('display.max_colwidth', None)  # Display entire content of columns
 
 # df = create_dataframe()
 # df = load_database()
-
+# print(df[df["source"] == "DII"]["activation_time"])
 # train, test = get_datasets_paw(df)
+
+# result = df[df['stimulus'] == "PAW"]
+# nan_clear = result[~result['filtered'].apply(lambda x: np.any(np.isnan(x)))]
+
+
 # grid_plot(df[:200], legend=True, labels=['resampled', 'filtered'])
-# print(test)
+# print(test[test["activation_time"].isna()])
+# print(nan_clear[nan_clear["activation_time"].isna()])
+
 # print(train)
