@@ -1,8 +1,8 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from matplotlib.widgets import RadioButtons, Button
+from matplotlib.widgets import RadioButtons, Button, CheckButtons
 from tensorflow.python.ops.numpy_ops import np_arrays
-
+import pandas as pd
 import helper
 import data.database_creator as db  # custom module
 from lib.latent_space_helper import scale, create_colors, get_colors_list
@@ -22,15 +22,51 @@ class Visualizer:
         self.full_autoencoder = helper.load_autoencoder(2)
         self.df = db.load_database('../data/dataframe.h5')
 
-        result = self.df[self.df['stimulus'] == "PAW"]
+        # print(self.df.columns)
+        # print(self.df.drop(['filtered', "shape_ts", "time_series", "resampled"], axis=1))
+
+        # result = self.df[self.df['stimulus'] == "PAW"]
         # result = result[result['source'] == "DBD"]
+        result = self.df
 
         nan_clear = result[~result['filtered'].apply(lambda x: np.any(np.isnan(x)))]
+
+        columns = list(nan_clear["stimulus"].unique())
+        columns.remove("PAW")
+
+        nan_clear = nan_clear.copy()
+
+        # Convert 'storage_duration' to numeric, fill NaNs, and convert to int then str
+        nan_clear['storage_duration'] = (
+            pd.to_numeric(nan_clear['storage_duration'], errors='coerce')
+            .fillna(0)  # Replace NaNs with 0 if necessary
+            .astype(int)  # Convert to int to remove the .0
+            .astype(str)  # Convert back to string
+        )
+
+        for treatment in columns:
+            nan_clear.loc[nan_clear['stimulus'] == treatment, 'activation_time'] = treatment
+            nan_clear.loc[nan_clear['stimulus'] == treatment, 'storage_duration'] = treatment
+            nan_clear.loc[nan_clear['stimulus'] == treatment, 'frequency_power'] = treatment
+            nan_clear.loc[nan_clear['stimulus'] == treatment, 'source'] = treatment
+
+        nan_clear = nan_clear[nan_clear['source'].notna()]
+        nan_clear = nan_clear[nan_clear['frequency_power'].notna()]
+        nan_clear = nan_clear[nan_clear['storage_duration'].notna()]
+
+        # print(nan_clear)
+        # print(nan_clear.columns)
+
+        self.total_df = nan_clear
+
+        nan_clear = nan_clear[nan_clear["stimulus"] == "PAW"]
 
         self.np_smooth = np.vstack(nan_clear['filtered'].values)
         self.np_arrays = np.vstack(nan_clear['resampled'].values)
 
         self.df = nan_clear
+
+        # print()
         # self.database, self.np_arrays, self.np_smooth = load_database('../databse.pkl', self.show_phy_data)
 
         self.pred_val = self.generate_values(self.np_arrays)
@@ -42,34 +78,54 @@ class Visualizer:
         self.scatter_plot()
         self.radio_button = self.create_radiobutton()
         self.picked = (False, 0)
+        self.curr_selected = ["PAW"]
 
     def generate_values(self, values):
-        # values = values.reshape(1, -1)
-        # print(values.shape)
-        # print(self.full_autoencoder.encoder.predict(values, verbose=0).T.shape)
         return self.full_autoencoder.encoder.predict(values, verbose=0)[2].T
         # return self.full_autoencoder.encoder.predict(values, verbose=0).T
 
     def on_button_clicked(self, _):
         self.show_phy_data = not self.show_phy_data
-        # self.database, self.np_arrays, self.np_smooth = load_database('../databse.pkl', self.show_phy_data)
         self.pred_val = self.generate_values(self.np_arrays)
         self.clear_and_plot()
 
-    def create_radiobutton(self) -> tuple[RadioButtons, Button]:
-        rax = plt.axes((0.05, 0.3, 0.15, 0.2))
+    def create_radiobutton(self):
+        rax = plt.axes((0.03, 0.15, 0.2, 0.2))
         radio1 = RadioButtons(rax, list(helper.names.keys()), 0)
 
-        # rax = plt.axes((0.05, 0.5, 0.15, 0.12))
+        columns = list(self.total_df["stimulus"].unique())
+        columns.remove("PAW")
+
+        rax = plt.axes((0.03, 0.35, 0.2, 0.5))
+        check2 = CheckButtons(rax, columns)
+
         # radio2 = RadioButtons(rax, ["2D", "4D"], 0)
 
-        button_ax = plt.axes((0.05, 0.7, 0.15, 0.12))
-        button = Button(button_ax, 'Show physical data')
-        button.on_clicked(self.on_button_clicked)
+        # button_ax = plt.axes((0.05, 0.7, 0.15, 0.12))
+        # button = Button(button_ax, 'Show physical data')
+        # button.on_clicked(self.on_button_clicked)
 
+        check2.on_clicked(self.change_stim)
         radio1.on_clicked(self.change_type)
         # radio2.on_clicked(self.change_dim)
-        return radio1, button
+        return radio1, check2
+
+    def change_stim(self, element):
+        if element in self.curr_selected:
+            self.curr_selected.remove(element)
+        else:
+            self.curr_selected.append(element)
+
+        nan_clear = self.total_df[self.total_df["stimulus"].isin(self.curr_selected)]
+
+        self.np_smooth = np.vstack(nan_clear['filtered'].values)
+        self.np_arrays = np.vstack(nan_clear['resampled'].values)
+
+        self.df = nan_clear
+        self.pred_val = self.generate_values(self.np_arrays)
+        self.clear_and_plot()
+
+
 
     def scatter_plot(self):
         colors, self.scatter = create_colors(self.current_label, self.df, self.ax)
@@ -78,23 +134,18 @@ class Visualizer:
         self.scatter.append(self.ax[0].scatter(self.pred_val[0], self.pred_val[1], color=all_colors, picker=True))
         scale(self.ax[0], self.pred_val[:2, :])
 
-        # if self.current_dim == 4:
-        #     self.scatter.append(self.ax[1].scatter(self.pred_val[2], self.pred_val[3], color=all_colors, picker=True))
-        #
-        #     scale(self.ax[1], self.pred_val[2:, :])
-
     def change_type(self, new_label: str):
         self.current_label = helper.names[new_label]
 
-        self.df = db.load_database('../data/dataframe.h5')
-        result = self.df[self.df['stimulus'] == "PAW"]
+        # self.df = db.load_database('../data/dataframe.h5')
+        # result = self.df[self.df['stimulus'] == "PAW"]
 
-        nan_clear = result[~result['filtered'].apply(lambda x: np.any(np.isnan(x)))]
-        self.df = nan_clear[~nan_clear[self.current_label].isna()]
+        # nan_clear = result[~result['filtered'].apply(lambda x: np.any(np.isnan(x)))]
+        # self.df = nan_clear[~nan_clear[self.current_label].isna()]
 
-        self.np_smooth = np.vstack(self.df['filtered'].values)
-        self.np_arrays = np.vstack(self.df['resampled'].values)
-        self.pred_val = self.generate_values(self.np_arrays)
+        # self.np_smooth = np.vstack(self.df['filtered'].values)
+        # self.np_arrays = np.vstack(self.df['resampled'].values)
+        # self.pred_val = self.generate_values(self.np_arrays)
 
         # print(self.np_smooth.shape)
 
