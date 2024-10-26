@@ -5,7 +5,7 @@
 1. **Clone the repository**:
     ```bash
     git clone https://github.com/ivanbrillo/calciumSignalsDNN.git
-    cd your-repo
+    cd calciumSignalsDNN
     ```
 
 2. **Create a virtual environment**:
