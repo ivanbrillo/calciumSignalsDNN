@@ -5,6 +5,9 @@ from scipy.interpolate import interp1d
 from lib.AE import *
 from lib.betaVAE import VAE, get_seq_vae
 
+
+
+
 names = {
     "exposition time": "activation_time",
     "DBD vs PT": "source",
@@ -18,7 +21,7 @@ def load_autoencoder(dim: int) -> AE:
     # full_autoencoder = get_outer2()
     full_autoencoder.build(input_shape=(None, 1800))
     # full_autoencoder.load_weights(f"../weights/FullConvAE{str(dim)}Dbis.h5")
-    full_autoencoder.load_weights(f"../weights/betavae.weights.h5")
+    full_autoencoder.load_weights(f"./weights/betavae.weights.h5")
     # full_autoencoder.load_weights(f"../weights/inner2.weights.h5")
 
     return full_autoencoder

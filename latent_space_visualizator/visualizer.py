@@ -1,7 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.widgets import RadioButtons, Button, CheckButtons
-from tensorflow.python.ops.numpy_ops import np_arrays
 import pandas as pd
 import helper
 import data.database_creator as db  # custom module
@@ -20,7 +19,7 @@ class Visualizer:
         self.show_phy_data = False
 
         self.full_autoencoder = helper.load_autoencoder(2)
-        self.df = db.load_database('../data/dataframe.h5')
+        self.df = db.load_database('./data/dataframe.h5')
 
         # print(self.df.columns)
         # print(self.df.drop(['filtered', "shape_ts", "time_series", "resampled"], axis=1))
@@ -184,6 +183,7 @@ class Visualizer:
 
     def generate_plt(self):
         if all(self.selected):
+
             fig_new, ax_new = plt.subplots(figsize=(6, 6))
             coordinate_np = np.array(self.coordinate).reshape([1, 2])
 
@@ -191,9 +191,10 @@ class Visualizer:
                 coordinate_np = np.array([self.pred_val[0][self.picked[1]], self.pred_val[1][self.picked[1]]]).reshape(
                     [1, 2])
 
-            values = self.full_autoencoder.decoder(coordinate_np)
+                    # print(second_closest)
 
-            ax_new.plot(values[0], label='Reconstructed')
+            values = self.full_autoencoder.decoder(coordinate_np)
+            ax_new.plot(values[0], label='Model Reconstructed')
 
             if self.picked[0]:
                 coordinate_np1 = self.np_arrays[self.picked[1]].reshape(1800, )
@@ -201,6 +202,23 @@ class Visualizer:
 
                 ax_new.plot(coordinate_np1, label='Original')
                 ax_new.plot(coordinate_np2, label='Smoothed')
+
+                row_i = self.df.iloc[self.picked[1]]
+                if row_i["stimulus"] != "PAW":
+                    coord = coordinate_np.reshape([2, 1])
+                    distances = np.linalg.norm(self.pred_val - coord, axis=0)
+
+                    sorted_indices = np.argsort(distances)
+                    nearest_index = -1
+
+                    for i in sorted_indices:
+                        row_i = self.df.iloc[i]
+                        if row_i["stimulus"] == "PAW":
+                            nearest_index = i
+                            break
+
+                    coordinate_np3 = self.np_smooth[nearest_index].reshape(1800, )
+                    ax_new.plot(coordinate_np3, label='Nearest Smoothed')
 
             ax_new.set_title('Generated Time Series')
             fig_new.canvas.manager.set_window_title("Decoded series")
